@@ -1,16 +1,22 @@
 
-
 //Mux control pins for analog signal (SIG_pin) default for arduino mini pro
 const byte s0 = 10;
 const byte s1 = 11;
 const byte s2 = 12;
 const byte s3 = 13;
+int val;
 
 //Mux control pins for Output signal (OUT_pin) default for arduino mini pro
 const byte w0 = 2; 
 const byte w1 = 3;
 const byte w2 = 4;
 const byte w3= 5 ;
+int t=0;
+int star[8][8];
+float ttemp=0;
+int a=0;
+int b=0;
+int dummy=0;
 
 //Mux in "SIG" pin default for arduino mini pro 
 const byte SIG_pin = 14; 
@@ -90,7 +96,7 @@ void setup(){
   
   Serial.begin(115200);
   
-  Serial.println("\n\Calibrating...\n");
+//  Serial.println("\n\Calibrating...\n");
   
   // Full of 0's of initial matrix
   for(byte j = 0; j < 8; j ++)
@@ -99,10 +105,11 @@ void setup(){
     for(byte i = 0; i < 8; i ++)
       {calibra[j][i] = 0;
       maxsensor[j][i]=0;
+      star[j][i]=0;
   }
   }
-  Serial.println("Done Calibiration Calculating averages");
-  delay(5000);
+  //Serial.println("Done Calibiration Calculating averages");
+  delay(50);
   for(byte k = 0; k < 50; k++){  
     for(byte j = 0; j < 8; j ++){ 
       writeMux(j);
@@ -118,25 +125,23 @@ void setup(){
     }
   }
   
-  Serial.println("bb");
+ // Serial.println("bb");
   //Print averages
   for(byte j = 0; j < 8; j ++){ 
     writeMux(j);
     for(byte i = 0; i < 8; i ++){
       calibra[j][i] = calibra[j][i]/50;
      
-      Serial.print(calibra[j][i]);
-      Serial.print("\t");
+   //   Serial.print(calibra[j][i]);
+     // Serial.print("\t");
     }
-  Serial.println(); 
+ // Serial.println(); 
   }
   
-  Serial.println();
-  Serial.print("Minimum Value: ");
-  Serial.println(minsensor);
-  Serial.println("Max Value is:");
-  Serial.println();
-  delay(5000);
+  //Serial.println();
+  //Serial.println();
+  establishContact();
+  
  
 }
 
@@ -144,18 +149,57 @@ void setup(){
 void loop(){
   //Loop through and read all 16 values
   //Reports back Value at channel 6 is: 346
-    Serial.println("round starts now");   
+ if (Serial.available() > 0) { // If data is available to read,
+    val = Serial.read(); // read it and store it in val
+
+    if(val == 'A')
+    {   
       for(int j = 0; j <8; j++){ 
         writeMux(j);
         
         for(int i = 0; i < 8; i++){
             
           valor = readMux(i);
-         Serial.println(valor);
+          t=maxsensor[j][i];
+          
+          if(valor>1.618*t)
+          {ttemp=((valor-calibra[j][i])/calibra[j][i])*100;
+           if(ttemp>dummy)
+           {star[a][b]=0;
+           star[j][i]=ttemp;
+           a=j;
+           b=i;
+           dummy=star[j][i];
+           
+           
+           }
+         
+          }
              
-        } 
+        }
+        
+        
       }
+      Serial.write(a-1);
+      Serial.write(b-1);
+  //    Serial.println();
+     
+    /*  for(byte j = 0; j < 8; j ++){ 
+    for(byte i = 0; i < 8; i ++){
+     
+      Serial.print(star[j][i]);
+      Serial.print("\t");
     }
+  Serial.println(); 
+  }*/
+  dummy=0;
+  //Serial.println();
+  //Serial.println(); 
+  star[a][b]=0;
+  
+    }
+  }
+}
       
 
 
@@ -182,5 +226,10 @@ void writeMux(byte channel){
     digitalWrite(controlPin[i], muxChannel[channel][i]);
   }
 }
-
+void establishContact() {
+  while (Serial.available() <= 0) {
+  Serial.println('A');   // send a capital A
+  delay(300);
+  }
+}
 
